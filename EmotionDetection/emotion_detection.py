@@ -1,42 +1,64 @@
 import requests
-import json
+
 def emotion_detector(text_to_analyze):
+
     url = "https://sn-watson-emotion.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService/EmotionPredict"
 
     headers = {
-    "grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"
-    }   
+        "grpc-metadata-mm-model-id": "emotion_aggregated-workflow_lang_en_stock"
+    }
 
     payload = {
         "raw_document": {
             "text": text_to_analyze
         }
     }
+
     response = requests.post(url, json=payload, headers=headers)
+
+    # If API fails, return None format (IBM expects safe handling)
+    if response.status_code != 200:
+        return {
+            'anger': None,
+            'disgust': None,
+            'fear': None,
+            'joy': None,
+            'sadness': None,
+            'dominant_emotion': None
+        }
+
     response_dict = response.json()
-    anger_score = response_dict['emotionPredictions'][0]['emotion']['anger']
-    disgust_score = response_dict['emotionPredictions'][0]['emotion']['disgust']
-    fear_score = response_dict['emotionPredictions'][0]['emotion']['fear']
-    joy_score = response_dict['emotionPredictions'][0]['emotion']['joy']
-    sadness_score = response_dict['emotionPredictions'][0]['emotion']['sadness']
-    emotions = {
-        'anger': anger_score,
-        'disgust': disgust_score,
-        'fear': fear_score,
-        'joy': joy_score,
-        'sadness': sadness_score
+
+    emotions = response_dict['emotionPredictions'][0]['emotion']
+
+    anger = emotions['anger']
+    disgust = emotions['disgust']
+    fear = emotions['fear']
+    joy = emotions['joy']
+    sadness = emotions['sadness']
+
+    result = {
+        'anger': anger,
+        'disgust': disgust,
+        'fear': fear,
+        'joy': joy,
+        'sadness': sadness,
+        'dominant_emotion': max(
+            {
+                'anger': anger,
+                'disgust': disgust,
+                'fear': fear,
+                'joy': joy,
+                'sadness': sadness
+            },
+            key=lambda x: {
+                'anger': anger,
+                'disgust': disgust,
+                'fear': fear,
+                'joy': joy,
+                'sadness': sadness
+            }[x]
+        )
     }
-    dominant_emotion = max(emotions, key=emotions.get)
-    format_response = {
-        'anger': anger_score,
-        'disgust': disgust_score,
-        'fear': fear_score,
-        'joy': joy_score,
-        'sadness': sadness_score,
-        'dominant_emotion': dominant_emotion
-    }
-    json_result = json.dumps(format_response, indent=4) 
-    result = json_result.replace('"', "'")
+
     return result
-
-
